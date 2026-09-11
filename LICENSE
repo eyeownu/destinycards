@@ -1,13 +1,22 @@
-MIT License
+MIT License — Core Engine Only
 
-Copyright (c) 2026 Ramazing Designs
+Copyright (c) 2026 Ramazing Designs / Ramon White
+
+--- SCOPE OF THIS LICENSE ---
+
+This MIT license applies ONLY to the core quadration engine:
+  - Solar Value birth card formula (Richmond, 1893 — public domain math)
+  - Quadration dealing procedure (Richmond, 1893 — public domain math)
+  - Age spread generation
+  - Displacement index shortcut
+  - Life Spread / Spiritual Spread data structures
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+of the above-described software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including without
+limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom
+the Software is furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
@@ -19,3 +28,27 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+--- PROPRIETARY RESERVATION ---
+
+The following are NOT covered by this license and remain the exclusive
+proprietary intellectual property of Ramazing Designs / Ramon White:
+
+  1. The RTL sequential method for deriving Planetary Ruling Cards (PRC)
+     and Decanate Ruler Cards from the Life Spread.
+
+  2. Modern planetary rulership assignments and corrections to the
+     traditional Chaldean decanate system as applied to this card science.
+
+  3. The Blend system — the methodology for correlating card spread
+     positions (row planet, column planet, displacement card) with
+     natal astrology transits for timing and prediction.
+
+  4. Transit correlation findings, backtested signals, and any scoring
+     or rating systems derived from card-to-transit confluence analysis.
+
+  5. Any interpretation framework, reading methodology, or prediction
+     model built on top of the core engine.
+
+Use of this library does not grant any rights to the proprietary methods
+listed above. For licensing inquiries contact: admin@ramazingdesigns.com

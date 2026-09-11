@@ -162,6 +162,109 @@ def yearly_period(dob, target):
             'period_planet': PLANETS[period], 'day_in_period': days % 52,
             'week_in_period': (days % 52) // 7}
 
+
+# --- RTL Life Spread sequence ---
+# Cards read right to left, row by row downward.
+# Crown (indices 2,1,0) then each of 7 rows reversed.
+def _build_rtl_sequence():
+    ls = LIFE_SPREAD
+    rtl = [ls[2], ls[1], ls[0]]
+    for row_start in range(3, 52, 7):
+        rtl += list(reversed(ls[row_start:row_start + 7]))
+    return rtl
+
+RTL_SEQUENCE = _build_rtl_sequence()
+_RTL_INDEX = {c: i for i, c in enumerate(RTL_SEQUENCE)}
+
+# --- Modern planetary rulerships (locked 2026-09-11) ---
+SIGN_RULERS = {
+    "Aries":       ["Mars"],
+    "Taurus":      ["Venus"],
+    "Gemini":      ["Mercury"],
+    "Cancer":      ["Moon"],
+    "Leo":         ["Sun"],
+    "Virgo":       ["Mercury"],
+    "Libra":       ["Venus"],
+    "Scorpio":     ["Mars", "Pluto"],
+    "Sagittarius": ["Jupiter"],
+    "Capricorn":   ["Saturn"],
+    "Aquarius":    ["Uranus"],
+    "Pisces":      ["Neptune"],
+}
+
+# --- Modern decanate rulers (locked 2026-09-11) ---
+DECAN_RULERS = {
+    "Aries":       ["Mars",    "Sun",     "Jupiter"],
+    "Taurus":      ["Venus",   "Mercury", "Saturn"],
+    "Gemini":      ["Mercury", "Venus",   "Saturn"],
+    "Cancer":      ["Moon",    "Mars",    "Jupiter"],
+    "Leo":         ["Sun",     "Jupiter", "Mars"],
+    "Virgo":       ["Mercury", "Saturn",  "Venus"],
+    "Libra":       ["Venus",   "Saturn",  "Mercury"],
+    "Scorpio":     ["Mars",    "Neptune", "Moon"],
+    "Sagittarius": ["Jupiter", "Mars",    "Sun"],
+    "Capricorn":   ["Saturn",  "Venus",   "Mercury"],
+    "Aquarius":    ["Uranus",  "Mercury", "Venus"],
+    "Pisces":      ["Neptune", "Moon",    "Mars"],
+}
+
+PLANET_STEPS = {
+    "Mercury": 1, "Venus": 2, "Mars": 3, "Jupiter": 4,
+    "Saturn": 5, "Uranus": 6, "Neptune": 7, "Pluto": 8,
+    "Moon": -1,
+    "Sun": 0,
+}
+
+SIGN_ENTRY = {
+    "Aries": (3,21), "Taurus": (4,20), "Gemini": (5,21), "Cancer": (6,21),
+    "Leo": (7,23), "Virgo": (8,23), "Libra": (9,23), "Scorpio": (10,23),
+    "Sagittarius": (11,22), "Capricorn": (12,22), "Aquarius": (1,20), "Pisces": (2,19),
+}
+
+def get_sun_sign(month, day):
+    result = "Capricorn"
+    order = [
+        ("Aquarius",(1,20)),("Pisces",(2,19)),("Aries",(3,21)),("Taurus",(4,20)),
+        ("Gemini",(5,21)),("Cancer",(6,21)),("Leo",(7,23)),("Virgo",(8,23)),
+        ("Libra",(9,23)),("Scorpio",(10,23)),("Sagittarius",(11,22)),("Capricorn",(12,22)),
+    ]
+    for sign,(em,ed) in order:
+        if (month,day) >= (em,ed):
+            result = sign
+    return result
+
+def get_decanate_index(month, day, sign):
+    em, ed = SIGN_ENTRY[sign]
+    ref = date(2000, em, ed)
+    bdate = date(2000, month, day)
+    days = (bdate - ref).days
+    if days < 0: days += 365
+    return min(days // 10, 2)
+
+def rtl_step(bc, steps):
+    if bc not in _RTL_INDEX: return bc
+    pos = _RTL_INDEX[bc]
+    return RTL_SEQUENCE[(pos + steps) % 52]
+
+def get_prc_decanate(month, day):
+    bc = birth_card(month, day)
+    sign = get_sun_sign(month, day)
+    dec_idx = get_decanate_index(month, day, sign)
+    dec_ruler = DECAN_RULERS[sign][dec_idx]
+    s = PLANET_STEPS.get(dec_ruler, 0)
+    dec_card = bc if s == 0 else rtl_step(bc, s)
+    rulers = SIGN_RULERS[sign]
+    prc_list = []
+    for planet in rulers:
+        ps = PLANET_STEPS.get(planet, 0)
+        prc_card = bc if ps == 0 else rtl_step(bc, ps)
+        prc_list.append({"planet": planet, "card": prc_card})
+    return {
+        "birth_card": bc, "sun_sign": sign,
+        "decanate": dec_idx + 1, "decan_ruler": dec_ruler,
+        "decanate_card": dec_card, "prc": prc_list,
+    }
+
 class CardologyEngine:
     def birth_card(self, month, day): return birth_card(month, day)
     def displacement(self, card, age): return displacement(card, age)
