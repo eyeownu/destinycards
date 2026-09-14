@@ -246,6 +246,109 @@ def rtl_step(bc, steps):
     pos = _RTL_INDEX[bc]
     return RTL_SEQUENCE[(pos + steps) % 52]
 
+
+
+def _rtl_step_idx(pos):
+    """
+    Advance one RTL step from array index pos in any 52-card spread.
+
+    Array layout (Crown first, then 7x7 grid row by row)::
+
+        [0]=Crown3  [1]=Crown2  [2]=Crown1
+        [3..9]   Row 1 col7..col1   (Mercury row)
+        [10..16] Row 2 col7..col1   (Venus row)
+        ...
+        [45..51] Row 7 col7..col1   (Neptune row)
+
+    Rules:
+        Crown leftmost (idx 0)        -> Row 1 rightmost (idx 9)
+        Crown non-leftmost (idx 1-2)  -> idx - 1
+        Grid leftmost (col 7, (idx-3)%7==0)
+                                      -> rightmost of row below (idx + 13)
+        Grid non-leftmost             -> idx - 1
+
+    Bug (fixed 2026-09-13): plain ``pos - 1`` at a grid-row leftmost wraps
+    backward to the row ABOVE, not forward to the row below.  Affected every
+    birth card in Row 2+ whose 7-step walk crosses a row boundary.
+    Confirmed: 7D age-40 Uranus=7S (not 8S), Neptune=3D (not AC).
+    """
+    if pos == 0:
+        return 9
+    if pos <= 2:
+        return pos - 1
+    if (pos - 3) % 7 == 0:   # leftmost of a grid row
+        return pos + 13
+    return pos - 1
+
+
+_PERIOD_PLANETS = [
+    "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"
+]
+
+
+def read_direct(spread, birth_card):
+    """
+    Read the 7 direct planetary period cards for birth_card in the given age spread.
+
+    Parameters
+    ----------
+    spread : Spread | list
+        A Spread object (from age_spread()) or a plain list of 52 card strings.
+    birth_card : str
+        The birth card code, e.g. ``'7D'``.
+
+    Returns
+    -------
+    dict
+        ``{planet_name: card_code}`` for Mercury through Neptune.
+
+    Notes
+    -----
+    Uses _rtl_step_idx() for each step so that row-boundary crossings are
+    handled correctly.  Do not use the Life-Spread-based ``rtl_step()`` for
+    yearly period readings -- that function is for PRC/decanate lookups only.
+
+    Verified (2026-09-13)::
+
+        8D age 42: QC  KS  2D  AC  AD  TC  5S
+        7D age 40: 6D  JH  TC  8H  2H  7S  3D
+    """
+    cards = spread.cards if isinstance(spread, Spread) else list(spread)
+    pos = cards.index(birth_card)
+    out = {}
+    for planet in _PERIOD_PLANETS:
+        pos = _rtl_step_idx(pos)
+        out[planet] = cards[pos]
+    return out
+
+
+def step_left(spread, birth_card, n):
+    """
+    Walk n steps left from birth_card using _rtl_step_idx().
+
+    Used for extended positions: n=8 -> Pluto card, n=9 -> Result card.
+
+    Parameters
+    ----------
+    spread : Spread | list
+        Age spread as Spread object or plain list.
+    birth_card : str
+        The birth card code.
+    n : int
+        Number of RTL steps to take.
+
+    Returns
+    -------
+    str
+        Card code at the destination.
+    """
+    cards = spread.cards if isinstance(spread, Spread) else list(spread)
+    pos = cards.index(birth_card)
+    for _ in range(n):
+        pos = _rtl_step_idx(pos)
+    return cards[pos]
+
+
 def get_prc_decanate(month, day):
     bc = birth_card(month, day)
     sign = get_sun_sign(month, day)
