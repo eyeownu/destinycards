@@ -590,21 +590,37 @@ def read_direct(spread,birth_card):
 
 def read_vertical(spread,birth_card):
     """Read the 7 vertical (column) cards for birth_card in the given spread.
-    Takes the birth card's column and reads it bottom-to-top (Neptune row to Mercury row),
-    assigning periods Mercury through Neptune in that ascending order.
-    This is the OPPOSITE of the physical row order (Mercury=top in the grid),
-    hence planets_reversed. Confirmed from source by Prince 2026-09-11.
-    Column for Crown cards: Crown 1 (Mars col=3), Crown 2 (Jupiter col=4), Crown 3 (Saturn col=5).
+    Rule: start one step ABOVE the birth card in its column, walk upward (decreasing row),
+    wrap from Row 1 back to Row 7, assign Mercury through Neptune in that walk order.
+    Crown cards sit above Row 1, so the first step immediately wraps to Row 7 (Neptune row)
+    and reads upward through all 7 rows - same result as the previous planets_reversed logic.
+    Grid cards: walk starts above birth card position, wraps at top, so birth card itself
+    lands at Neptune period (step 7, back to self).
+    Column for Crown cards: Crown 1=col2(Mars), Crown 2=col3(Jupiter), Crown 3=col4(Saturn).
     Column for grid cards: (idx - 3) % 7, where 0=Neptune col (leftmost), 6=Mercury col (rightmost).
     Returns dict {planet_name: card_code} for Mercury through Neptune.
     Vertical + Direct are ALWAYS from the SAME age spread (not different spreads).
     Bug fixed 2026-09-10: was using forward row order; corrected to reversed.
+    Bug fixed 2026-09-19: bottom-to-top was only correct for Crown cards. Grid cards need
+    column-relative upward walk from birth card position. Verified: 8D age42 Crown unchanged,
+    8D age50 Row4/Uranus-col gives Mercury=QH,Venus=6C,Mars=KD,Jupiter=2D,Saturn=AH,Uranus=TS.
+    Confirmed by Prince 2026-09-19.
     """
     idx=spread.index(birth_card)
-    col=[2,3,4][idx] if idx<3 else (idx-3)%7
-    # Row assignment is reversed: Neptune row = Mercury period, Mercury row = Neptune period
-    planets_reversed=list(reversed(PLANET_LABELS))
-    return {label:spread[3+i*7+col] for i,label in enumerate(planets_reversed)}
+    if idx < 3:
+        # Crown card: above Row 1, first step wraps to Row 7, read bottom-to-top
+        col=[2,3,4][idx]
+        planets_reversed=list(reversed(PLANET_LABELS))
+        return {label:spread[3+i*7+col] for i,label in enumerate(planets_reversed)}
+    else:
+        # Grid card: start one step above birth card, walk upward, wrap Row1->Row7
+        col=(idx-3)%7
+        birth_row=(idx-3)//7  # 0-indexed: 0=Mercury row, 6=Neptune row
+        cards={}
+        for step,label in enumerate(PLANET_LABELS,start=1):
+            row=(birth_row-step)%7
+            cards[label]=spread[3+row*7+col]
+        return cards
 
 
 def _step_left(spread, bc_idx, n):
