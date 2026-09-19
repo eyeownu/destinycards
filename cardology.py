@@ -589,38 +589,53 @@ def read_direct(spread,birth_card):
     return cards
 
 def read_vertical(spread,birth_card):
-    """Read the 7 vertical (column) cards for birth_card in the given spread.
-    Rule: start one step ABOVE the birth card in its column, walk upward (decreasing row),
-    wrap from Row 1 back to Row 7, assign Mercury through Neptune in that walk order.
-    Crown cards sit above Row 1, so the first step immediately wraps to Row 7 (Neptune row)
-    and reads upward through all 7 rows - same result as the previous planets_reversed logic.
-    Grid cards: walk starts above birth card position, wraps at top, so birth card itself
-    lands at Neptune period (step 7, back to self).
-    Column for Crown cards: Crown 1=col2(Mars), Crown 2=col3(Jupiter), Crown 3=col4(Saturn).
-    Column for grid cards: (idx - 3) % 7, where 0=Neptune col (leftmost), 6=Mercury col (rightmost).
-    Returns dict {planet_name: card_code} for Mercury through Neptune.
-    Vertical + Direct are ALWAYS from the SAME age spread (not different spreads).
-    Bug fixed 2026-09-10: was using forward row order; corrected to reversed.
-    Bug fixed 2026-09-19: bottom-to-top was only correct for Crown cards. Grid cards need
-    column-relative upward walk from birth card position. Verified: 8D age42 Crown unchanged,
-    8D age50 Row4/Uranus-col gives Mercury=QH,Venus=6C,Mars=KD,Jupiter=2D,Saturn=AH,Uranus=TS.
-    Confirmed by Prince 2026-09-19.
+    """Read vertical (column) cards for birth_card in the given spread.
+    Three cases based on column type:
+
+    CROWN CARD (idx < 3): Birth card IS in the Crown. Uses virtual 8-position column
+    (Crown=0, Row0..Row6=1..7). virtual_birth=0, 7 steps, Crown included in walk path.
+    Equivalent to old bottom-to-top of grid rows.
+
+    GRID CARD IN CROWN COLUMN (col in {2,3,4} - Mars/Jupiter/Saturn): Column has 8
+    positions (Crown + 7 rows). virtual_birth = birth_row + 1. 7 steps. Walk may land
+    on Crown card (vpos=0).
+
+    GRID CARD IN NON-CROWN COLUMN (col in {0,1,5,6} - Neptune/Uranus/Venus/Mercury):
+    Column has only 7 positions (no Crown). 6 steps only. Neptune vertical does not
+    exist for these columns - omitted from return dict.
+
+    Column index: 0=Neptune(leftmost), 1=Uranus, 2=Saturn, 3=Jupiter, 4=Mars,
+    5=Venus, 6=Mercury(rightmost). Crown cards in cols 2,3,4 only.
+    Crown spread indices: Saturn Crown=0, Jupiter Crown=1, Mars Crown=2.
+
+    Returns dict {planet_name: card_code}. Neptune key absent for non-Crown columns.
+    Vertical + Direct are ALWAYS from the SAME age spread.
+
+    Bugs fixed:
+    2026-09-10: forward row order corrected to reversed.
+    2026-09-19a: bottom-to-top only valid for Crown cards; grid cards use upward walk.
+    2026-09-19b: non-Crown columns have 7 positions not 8; 6 steps only, no Neptune.
+    Verified: 8D age42 Crown KH/6H/QD/3S/5H/JD/AD, age49 Mercury-col 6D/TC/KD/TH/KC/9S,
+    age50 Uranus-col QH/6C/KD/2D/AH/TS. All confirmed Prince 2026-09-19.
     """
+    CROWN_COLS={2,3,4}
+    CROWN_IDX_MAP={2:0,3:1,4:2}
     idx=spread.index(birth_card)
-    if idx < 3:
-        # Crown card: above Row 1, first step wraps to Row 7, read bottom-to-top
-        col=[2,3,4][idx]
-        planets_reversed=list(reversed(PLANET_LABELS))
-        return {label:spread[3+i*7+col] for i,label in enumerate(planets_reversed)}
+    if idx<3:
+        col=[2,3,4][idx];virtual_birth=0
     else:
-        # Grid card: start one step above birth card, walk upward, wrap Row1->Row7
-        col=(idx-3)%7
-        birth_row=(idx-3)//7  # 0-indexed: 0=Mercury row, 6=Neptune row
-        cards={}
-        for step,label in enumerate(PLANET_LABELS,start=1):
-            row=(birth_row-step)%7
-            cards[label]=spread[3+row*7+col]
-        return cards
+        col=(idx-3)%7;birth_row=(idx-3)//7
+        if col not in CROWN_COLS:
+            cards={}
+            for step,label in enumerate(PLANET_LABELS[:6],start=1):
+                cards[label]=spread[3+((birth_row-step)%7)*7+col]
+            return cards
+        virtual_birth=birth_row+1
+    cards={}
+    for step,label in enumerate(PLANET_LABELS,start=1):
+        vpos=(virtual_birth-step)%8
+        cards[label]=spread[CROWN_IDX_MAP[col]] if vpos==0 else spread[3+(vpos-1)*7+col]
+    return cards
 
 
 def _step_left(spread, bc_idx, n):
